@@ -4,8 +4,8 @@ import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text, View } from '@/components/Themed';
 import { Platform } from 'react-native';
 import { IBluetoothAdapter } from '../_ble/_types';
-import { NativeBleAdapter } from './_nativeBleAdapter';
-import { WebBluetoothAdapter } from './_webBluetoothAdapter';
+import { NativeBleAdapter } from '../_ble/_nativeBleAdapter';
+import { WebBluetoothAdapter } from '../_ble/_webBluetoothAdapter';
 
 let adapter: IBluetoothAdapter;
 
