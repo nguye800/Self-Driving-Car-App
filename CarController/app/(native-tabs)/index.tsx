@@ -1,6 +1,5 @@
 import { StyleSheet } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
 import { Text, View } from '@/components/Themed';
 import { Platform } from 'react-native';
 import { IBluetoothAdapter } from '../_ble/_types';
@@ -24,9 +23,9 @@ export function getBluetoothAdapter(): IBluetoothAdapter {
 export default function TabOneScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Tab One</Text>
+      <Text style={styles.title}>Self Driving Car App Home Screen</Text>
       <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/index.tsx" />
+      <Text style={styles.paragraph}>POOOOPOOOO PEEEEPEEEEE</Text>
     </View>
   );
 }
@@ -40,6 +39,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  paragraph: {
+    fontSize: 15,
+    fontWeight: 'bold'
   },
   separator: {
     marginVertical: 30,

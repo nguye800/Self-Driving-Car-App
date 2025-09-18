@@ -1,12 +1,29 @@
 // src/screens/ControlScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, Button, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { SafeAreaView, View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
 import { getBluetoothAdapter } from '.';
+import Joystick from "../components/joystick";
 
-export default function ControlScreen() {
+type Device = { id: string; name?: string | null };
+
+interface Props {
+  callRobot: () => void;
+  onJoystickMove: (x: number, y: number) => void;  // normalized -1..1
+  onJoystickRelease?: () => void;
+}
+
+export default function ControlScreen(props: Props) {
   const bt = getBluetoothAdapter();
   const [devices, setDevices] = useState<{id:string; name?:string|null}[]>([]);
   const [connected, setConnected] = useState(false);
+  const { callRobot, onJoystickMove, onJoystickRelease } = props;
+
+  const renderDevice = ({ item }: { item: Device }) => (
+    <TouchableOpacity onPress={() => connect(item.id)} style={styles.deviceRow}>
+      <Text style={styles.deviceName}>{item.name || "Unknown"}</Text>
+      <Text style={styles.deviceId}>{item.id}</Text>
+    </TouchableOpacity>
+  );
 
   const startScan = async () => {
     setDevices([]);
@@ -32,21 +49,108 @@ export default function ControlScreen() {
   };
 
   return (
-    <View style={{ padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: '600' }}>Car Controller</Text>
-      <Button title="Scan" onPress={startScan} />
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Car Controller</Text>
+        <TouchableOpacity onPress={startScan} style={styles.scanBtn}>
+          <Text style={styles.scanText}>Scan</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* (Optional) Devices list under header */}
       <FlatList
-        style={{ marginVertical: 12 }}
+        style={styles.deviceList}
         data={devices}
-        keyExtractor={d => d.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => connect(item.id)} style={{ padding: 12 }}>
-            <Text>{item.name || 'Unknown'}</Text>
-            <Text style={{ color: '#666' }}>{item.id}</Text>
-          </TouchableOpacity>
-        )}
+        keyExtractor={(d) => d.id}
+        renderItem={renderDevice}
+        contentContainerStyle={styles.deviceListContent}
       />
-      {connected && <Button title="Forward" onPress={sendForward} />}
-    </View>
+
+      {/* Top third: big Call Robot */}
+      <View style={styles.topThird}>
+        <TouchableOpacity onPress={callRobot} style={styles.callButton}>
+          <Text style={styles.callButtonText}>Call Robot</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Middle/Bottom: centered joystick */}
+      <View style={styles.joystickArea}>
+        <Joystick
+          size={220}
+          knobSize={90}
+          onMove={onJoystickMove}
+          onRelease={onJoystickRelease}
+        />
+      </View>
+
+      {/* Example extra control when connected */}
+      {connected && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.forwardBtn} onPress={sendForward}>
+            <Text style={styles.forwardText}>Forward</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </SafeAreaView>
   );
 }
+
+// Styling
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#0b0b0c" },
+
+  header: {
+    height: 56,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  title: { fontSize: 20, fontWeight: "700", color: "#fff" },
+  scanBtn: {
+    position: "absolute",
+    right: 16,
+    top: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  scanText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+
+  deviceList: { maxHeight: 140 },
+  deviceListContent: { paddingHorizontal: 16, paddingVertical: 8 },
+  deviceRow: {
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+  deviceName: { color: "#fff", fontSize: 16 },
+  deviceId: { color: "#9aa0a6", fontSize: 12, marginTop: 2 },
+
+  topThird: { flex: 1, justifyContent: "center", alignItems: "center" },
+  callButton: {
+    paddingVertical: 18,
+    paddingHorizontal: 28,
+    borderRadius: 16,
+    backgroundColor: "#2563eb",
+    elevation: 2,
+  },
+  callButtonText: { color: "#fff", fontSize: 20, fontWeight: "800", letterSpacing: 0.5 },
+
+  joystickArea: { flex: 2, justifyContent: "center", alignItems: "center" },
+
+  footer: {
+    padding: 16,
+    alignItems: "center",
+  },
+  forwardBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: "#10b981",
+  },
+  forwardText: { color: "#0b0b0c", fontWeight: "700", fontSize: 16 },
+});

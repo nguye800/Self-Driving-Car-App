@@ -32,7 +32,7 @@ export default function TabLayout() {
           title: 'Home Page',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
           headerRight: () => (
-            <Link href="../modal" asChild>
+            <Link href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" asChild>
               <Pressable>
                 {({ pressed }) => (
                   <FontAwesome
