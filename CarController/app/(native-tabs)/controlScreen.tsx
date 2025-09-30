@@ -1,8 +1,24 @@
 // src/screens/ControlScreen.tsx
-import React, { useState, useMemo } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, FlatList, StyleSheet } from "react-native";
-import { getBluetoothAdapter } from '.';
+import React, { useState } from 'react';
+import { FlatList, Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { NativeBleAdapter } from '../_ble/_nativeBleAdapter';
+import { IBluetoothAdapter } from '../_ble/_types';
+import { WebBluetoothAdapter } from '../_ble/_webBluetoothAdapter';
 import Joystick from "../components/joystick";
+
+let adapter: IBluetoothAdapter;
+
+export function getBluetoothAdapter(): IBluetoothAdapter {
+  if (!adapter) {
+    // Web build uses web adapter; native uses native adapter
+    if (Platform.OS === 'web') {
+      adapter = new WebBluetoothAdapter();
+    } else {
+      adapter = new NativeBleAdapter();
+    }
+  }
+  return adapter;
+}
 
 type Device = { id: string; name?: string | null };
 
@@ -52,7 +68,6 @@ export default function ControlScreen(props: Props) {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Car Controller</Text>
         <TouchableOpacity onPress={startScan} style={styles.scanBtn}>
           <Text style={styles.scanText}>Scan</Text>
         </TouchableOpacity>
@@ -98,7 +113,7 @@ export default function ControlScreen(props: Props) {
 
 // Styling
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#0b0b0c" },
+  container: { flex: 1, backgroundColor: "#0b1220" },
 
   header: {
     height: 56,
@@ -106,7 +121,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+    borderBottomColor: "#0b1220",
   },
   title: { fontSize: 20, fontWeight: "700", color: "#fff" },
   scanBtn: {
@@ -116,16 +131,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#0b1220",
   },
-  scanText: { color: "#fff", fontSize: 12, fontWeight: "600" },
+  scanText: { color: "#fff", fontSize: 13, fontWeight: "600" },
 
   deviceList: { maxHeight: 140 },
   deviceListContent: { paddingHorizontal: 16, paddingVertical: 8 },
   deviceRow: {
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+    borderBottomColor: "#0b1220",
   },
   deviceName: { color: "#fff", fontSize: 16 },
   deviceId: { color: "#9aa0a6", fontSize: 12, marginTop: 2 },

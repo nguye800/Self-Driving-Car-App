@@ -1,11 +1,8 @@
-import React from 'react';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
+import { Tabs } from 'expo-router';
+import React from 'react';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { StyleSheet } from "react-native";
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon(props: {
@@ -16,37 +13,20 @@ function TabBarIcon(props: {
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
+      initialRouteName='controlScreen'
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
+        tabBarActiveTintColor: '#60a5fa',
+        tabBarInactiveTintColor: '#9ca3af',
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabLabel,
+        headerStyle: styles.header,
+        headerTitleStyle: styles.headerTitle,
+        headerTintColor: '#60a5fa',
         headerShown: useClientOnlyValue(false, true),
+        headerTitleAlign: 'center',
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home Page',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
       <Tabs.Screen
         name="controlScreen"
         options={{
@@ -54,6 +34,37 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="diagnosticScreen"
+        options={{
+          title: 'Diagnostics',
+          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: '#0b1220',
+    borderTopWidth: 0,
+    height: 70,
+    paddingBottom: 8,
+    paddingTop: 8,
+  },
+  tabLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: 'SpaceMono', // loaded in RootLayout
+  },
+  header: {
+    backgroundColor: '#0b1220',
+  },
+  headerTitle: {
+    color: '#e5e7eb',
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'SpaceMono',
+  },
+});
