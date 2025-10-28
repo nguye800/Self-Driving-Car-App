@@ -12,7 +12,17 @@ export interface IBluetoothAdapter {
   write(
     serviceUUID: string,
     characteristicUUID: string,
-    data: Uint8Array
+    data: ArrayBuffer,
+    withoutResponse?: boolean
+  ): Promise<void>;
+  subscribe(
+    serviceUUID: string,
+    characteristicUUID: string,
+    onData: (data: DataView) => void
+  ): Promise<void>;
+  unsubscribe(
+    serviceUUID: string,
+    characteristicUUID: string
   ): Promise<void>;
   disconnect(): Promise<void>;
 }

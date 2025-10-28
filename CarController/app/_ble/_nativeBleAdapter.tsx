@@ -2,6 +2,11 @@ import { BleManager, Device } from 'react-native-ble-plx';
 import { IBluetoothAdapter, ScanResult } from './_types';
 import { Platform } from 'react-native';
 
+// Define UUIDs here 
+const PI_PING_SERVICE_UUID = "b07498ca-ad5b-474e-940d-16f1a71141e0";
+const PI_PING_CHAR_UUID = "c1ff12bb-3ed8-46e5-b4f9-a6ca6092d345";
+const APP_PONG_CHAR_UUID = "d7add780-b042-4876-aae1-112855353cc1";
+
 export class NativeBleAdapter implements IBluetoothAdapter {
   private manager = new BleManager();
   private connected?: Device;
@@ -38,11 +43,15 @@ export class NativeBleAdapter implements IBluetoothAdapter {
     this.connected = await dev.discoverAllServicesAndCharacteristics();
   }
 
-  async write(serviceUUID: string, characteristicUUID: string, data: Uint8Array) {
+  async write(serviceUUID: string, characteristicUUID: string, data: ArrayBuffer) {
     if (!this.connected) throw new Error('Not connected');
     const base64 = Buffer.from(data).toString('base64'); // polyfill via 'buffer' if needed
     await this.connected.writeCharacteristicWithResponseForService(serviceUUID, characteristicUUID, base64);
   }
+
+  async subscribe(serviceUUID: string, characteristicUUID: string, onData: (data: DataView) => void) {  }
+
+  async unsubscribe(serviceUUID: string, characteristicUUID: string) {  } 
 
   async disconnect() {
     if (this.connected) {
