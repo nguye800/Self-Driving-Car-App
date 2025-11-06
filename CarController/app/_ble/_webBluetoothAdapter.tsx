@@ -16,15 +16,35 @@ export class WebBluetoothAdapter implements IBluetoothAdapter {
     return typeof navigator !== 'undefined' && !!navigator.bluetooth;
   }
 
-  async scan(onDevice: (d: ScanResult) => void, options?: { serviceUUIDs?: string[] }) {
-    // Web Bluetooth doesn't do passive scans; it shows a chooser.
-    const filters = (options?.serviceUUIDs ?? []).map(u => ({ services: [u] }));
-    // If no filters, use acceptAllDevices to show everything (Chrome requires one or the other)
-    const device = await navigator.bluetooth.requestDevice(
-      filters.length ? { filters } : { acceptAllDevices: true, optionalServices: options?.serviceUUIDs }
-    );
-    onDevice({ id: device.id, name: device.name ?? null });
-    this.device = device;
+  async scan(onDevice: (d: ScanResult) => void, options?: { serviceUUIDs?: string[], acceptAllDevices?: boolean }) {
+    const optionalServices = options?.serviceUUIDs ?? [];
+    let requestOptions: RequestDeviceOptions;
+
+    if (options?.acceptAllDevices) {
+      requestOptions = {
+        acceptAllDevices: true,
+        optionalServices: optionalServices
+      };
+    } else {
+      const filters = optionalServices.map(u => ({ services: [u] }));
+
+      if (filters.length === 0) {
+        requestOptions = {
+          acceptAllDevices: true,
+          optionalServices: optionalServices
+        };
+      } else {
+        // Use filters only if they exist and acceptAll isn't true
+        requestOptions = {
+          filters: filters,
+          optionalServices: optionalServices
+        };
+      }
+    }
+
+    const device = await navigator.bluetooth.requestDevice(requestOptions);
+    onDevice({ id: device.id, name: device.name ?? null });
+    this.device = device;
   }
 
   async stopScan() {

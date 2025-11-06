@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { IBluetoothAdapter } from '../_ble/_types';
+import { IBluetoothAdapter, ScanResult } from '../_ble/_types';
 import { WebBluetoothAdapter } from '../_ble/_webBluetoothAdapter';
 
 // --- UUIDs (must match Pi server) ---
@@ -46,12 +46,12 @@ export const PiPingerView: React.FC = () => {
     try {
       // 1. Scan
       await adapter.scan(
-        (device) => {
+        (device: ScanResult) => {
           // In Web BT, scan returns the chosen device
           deviceIdRef.current = device.id;
           setStatus(`Device found: ${device.name || device.id}`);
         },
-        { serviceUUIDs: [PI_PING_SERVICE_UUID] }
+        { serviceUUIDs: [PI_PING_SERVICE_UUID], acceptAllDevices: true }
       );
 
       if (!deviceIdRef.current) {
@@ -114,7 +114,7 @@ export const PiPingerView: React.FC = () => {
          <button onClick={handleDisconnect}>Disconnect</button>
       ) : (
          <button onClick={handleConnect} disabled={status === 'Scanning...'}>
-           Connect to Pi Pinger
+           Connect to Pi
          </button>
       )}
 

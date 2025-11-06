@@ -6,7 +6,7 @@ export interface ScanResult {
 
 export interface IBluetoothAdapter {
   isAvailable(): Promise<boolean>;
-  scan(onDevice: (d: ScanResult) => void, options?: { serviceUUIDs?: string[] }): Promise<void>;
+  scan(onDevice: (d: ScanResult) => void, options?: { serviceUUIDs?: string[], acceptAllDevices?: boolean }): Promise<void>;
   stopScan(): Promise<void>;
   connect(deviceId: string): Promise<void>;
   write(
