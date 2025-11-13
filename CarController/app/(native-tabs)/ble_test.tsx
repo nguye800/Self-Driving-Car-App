@@ -6,9 +6,13 @@ import { WebBluetoothAdapter } from '../_ble/_webBluetoothAdapter';
 const PI_PING_SERVICE_UUID = "b07498ca-ad5b-474e-940d-16f1a71141e0";
 const PI_PING_CHAR_UUID = "c1ff12bb-3ed8-46e5-b4f9-a6ca6092d345";
 const APP_PONG_CHAR_UUID = "d7add780-b042-4876-aae1-112855353cc1";
+const COMMAND_CHAR_UUID = "e2f3c4d5-6789-4abc-def0-1234567890ab";
+const DATA_CHAR_UUID = "f1e2d3c4-b5a6-4789-8abc-0def12345678";
 
 // --- PONG payload (pre-encode for speed) ---
 const PONG_PAYLOAD = new TextEncoder().encode('PONG').buffer;
+const commandEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 export const PiPingerView: React.FC = () => {
   // Instantiate your adapter
@@ -17,6 +21,9 @@ export const PiPingerView: React.FC = () => {
 
   const [status, setStatus] = useState('Disconnected');
   const [error, setError] = useState<string | null>(null);
+
+  const [command, setCommand] = useState('');
+  const [piData, setPiData] = useState<string | null>(null);
   
   // Keep track of the device ID from the scan
   const deviceIdRef = useRef<string | null>(null);
@@ -39,6 +46,12 @@ export const PiPingerView: React.FC = () => {
       setError(`Failed to send PONG: ${err.message}`);
     }
   };
+
+  const handleDataUpdate = (data: DataView) => {
+    const message = textDecoder.decode(data);
+    console.log('Received data from Pi:', message);
+    setPiData(message);
+  }; 
 
   const handleConnect = async () => {
     setError(null);
@@ -70,6 +83,12 @@ export const PiPingerView: React.FC = () => {
         handlePing // Pass our PING handler as the callback
       );
 
+      await adapter.subscribe(
+        PI_PING_SERVICE_UUID,
+        DATA_CHAR_UUID,
+        handleDataUpdate 
+      );
+
       setStatus('Subscribed! Listening for PINGs.');
       
     } catch (err: any) {
@@ -87,11 +106,30 @@ export const PiPingerView: React.FC = () => {
       await adapter.disconnect();
       setStatus('Disconnected');
       setError(null);
+      setCommand('');
     } catch (err: any) {
       setError(err.message);
     }
   };
   
+  const handleSendCommand = async () => {
+    if (!command) return; // Don't send empty commands
+
+    try {
+      const payload = commandEncoder.encode(command).buffer;
+      await adapter.write(
+        PI_PING_SERVICE_UUID,
+        COMMAND_CHAR_UUID, // Write to the new COMMAND characteristic
+        payload,
+        false // Use a reliable write (with response)
+      );
+      // Clear the box on success
+      setCommand('');
+    } catch (err: any) {
+      setError(`Failed to send command: ${err.message}`);
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     // This returns the disconnect function,
@@ -102,7 +140,7 @@ export const PiPingerView: React.FC = () => {
   }, [adapter]);
 
 
-  return (
+    return (
     <div style={{ fontFamily: 'sans-serif', padding: '20px' }}>
       <h2>Pi-Initiated Latency Tester</h2>
       <p>
@@ -110,7 +148,7 @@ export const PiPingerView: React.FC = () => {
       </p>
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       
-      {status.startsWith('Subscribed') || status.startsWith('Connected') ? (
+      {status.includes('Subscribed') || status.includes('Connected') ? (
          <button onClick={handleDisconnect}>Disconnect</button>
       ) : (
          <button onClick={handleConnect} disabled={status === 'Scanning...'}>
@@ -118,12 +156,46 @@ export const PiPingerView: React.FC = () => {
          </button>
       )}
 
-      {status.startsWith('Subscribed') && (
-        <p style={{ marginTop: '20px' }}>
-          <strong>The Pi is now in control.</strong>
-          <br />
-          Check your Raspberry Pi's terminal to see the latency measurements.
-        </p>
+      {status.includes('Subscribed') && (
+        <div style={{ marginTop: '20px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+          <p>
+            <strong>RTT Ping loop is running in the background.</strong>
+            <br />
+            Check your Raspberry Pi's terminal to see the latency.
+          </p>
+
+          {/* --- NEW: Data Display Area --- */}
+          <div style={{ 
+            marginTop: '20px', 
+            padding: '10px', 
+            background: '#f4f4f4', 
+            border: '1px solid #ddd', 
+            borderRadius: '4px' 
+          }}>
+            <strong>Data from Pi:</strong>
+            {piData ? (
+              <pre style={{ margin: 0, marginTop: '5px' }}>{piData}</pre>
+            ) : (
+              <p style={{ margin: 0, marginTop: '5px', color: '#777' }}>
+                (Waiting for Pi to send data... sim takes 10s after connect)
+              </p>
+            )}
+          </div>
+          {/* --- END NEW --- */}
+          
+          <hr style={{ margin: '20px 0' }} />
+
+          <h4>Send a Command</h4>
+          <p>Send a message to the Pi's "Command" characteristic:</p>
+          <input
+            type="text"
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            placeholder="Type a command (e.g., 'hello')"
+            style={{ marginRight: '10px', minWidth: '200px' }}
+          />
+          <button onClick={handleSendCommand}>Send Command</button>
+        </div>
       )}
     </div>
   );
