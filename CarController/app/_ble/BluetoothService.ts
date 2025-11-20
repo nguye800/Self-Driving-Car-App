@@ -93,11 +93,24 @@ class BluetoothService {
   public async connect() {
     this.setState({ error: null, piData: null, status: 'Scanning...' });
     try {
+      const scanOptions =
+        Platform.OS === 'web'
+          ? {
+              // Web Bluetooth requires the service UUID here even if we accept all devices,
+              // otherwise the origin is blocked from accessing the service later.
+              serviceUUIDs: [SERVICE_UUID],
+              acceptAllDevices: true,
+            }
+          : {
+              // Native scan should surface all nearby advertisements.
+              acceptAllDevices: true,
+            };
+
       await this.adapter.scan(
         (device: ScanResult) => {
           this.setState({ status: `Device found: ${device.name || device.id}` });
         },
-        { serviceUUIDs: [SERVICE_UUID], acceptAllDevices: true }
+        scanOptions
       );
       
       this.setState({ status: 'Connecting...' });
