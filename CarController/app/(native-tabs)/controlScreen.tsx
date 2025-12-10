@@ -24,11 +24,28 @@ interface Props {
 export default function ControlScreen(props: Props) {
   // 2. Create local state, just for the status
   const [status, setStatus] = useState('Loading...');
+  const [currentMode, setCurrentMode] = useState<string>('MANUAL'); // Default to Manual
+
+
+  const lastSentRef = React.useRef<number>(0);
+  const SEND_INTERVAL_MS = 100; // Minimum interval between sends
 
   // 3. Subscribe to the service on mount
   useEffect(() => {
     const listener = (newState: BluetoothState) => {
       setStatus(newState.status);
+      if (newState.piData) {
+        try {
+          const data = JSON.parse(newState.piData);
+          if (data.mode && data.mode !== currentMode) {
+            setCurrentMode(data.mode);
+          }
+          else if (newState.piData === 'MANUAL') {
+            setCurrentMode('MANUAL');
+          }
+        } catch (err) {
+        } // Ignore JSON parse errors
+      }
     };
     btService.subscribe(listener);
 
@@ -43,6 +60,16 @@ export default function ControlScreen(props: Props) {
 
   const { callRobot, onJoystickMove, onJoystickRelease } = props;
   
+  const handleAutoModePress = async () => {
+    // 1. Call the original prop
+    if (callRobot) callRobot();
+
+    // 2. Call the service function to start self-driving
+    if (isConnected) {
+      await btService.sendAutoCommand();
+    }
+  };
+
   const handleManualModePress = async () => {
     // 1. Call the original prop
     if (callRobot) callRobot();
@@ -55,6 +82,24 @@ export default function ControlScreen(props: Props) {
     }
   };
 
+  const handleJoystickMove = (x: number, y: number) => {
+    if (currentMode !== 'MANUAL') return;
+    // 1. Always update local UI/Parents immediately
+    if (onJoystickMove) onJoystickMove(x, y);
+
+    // 2. Send to Pi (Throttled)
+    const now = Date.now();
+    if (isConnected && (now - lastSentRef.current > SEND_INTERVAL_MS)) {
+      // Send JSON: { "x": 0.5, "y": -1.0 }
+      // We invert Y here if your joystick considers 'up' as negative (common in web/canvas),
+      // otherwise keep it as is. Usually Y needs inverting for "forward = positive".
+      // Let's assume standard Cartesian for now.
+      btService.sendJsonCommand({ x: x, y: y });
+      
+      lastSentRef.current = now;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -64,14 +109,32 @@ export default function ControlScreen(props: Props) {
         </Text>
       </View>
 
+      <View style={styles.modeIndicator}>
+        <Text style={styles.modeLabel}>Current Mode:</Text>
+        <Text style={[
+          styles.modeValue, 
+          currentMode === 'AUTO' ? styles.textRed : styles.textBlue
+        ]}>
+          {currentMode}
+        </Text>
+      </View>
+
       <View style={styles.topThird}>
+        <TouchableOpacity 
+          onPress={handleAutoModePress} 
+          style={[styles.callButton, !isConnected && styles.callButtonDisabled]}
+          disabled={!isConnected}
+        >
+          {/* This button now starts self-driving */}
+          <Text style={styles.callButtonText}>Start</Text>
+        </TouchableOpacity>
         <TouchableOpacity 
           onPress={handleManualModePress} 
           style={[styles.callButton, !isConnected && styles.callButtonDisabled]}
           disabled={!isConnected}
         >
           {/* This button now sends 'MANUAL' */}
-          <Text style={styles.callButtonText}>Start Manual Mode</Text>
+          <Text style={styles.callButtonText}>Manual</Text>
         </TouchableOpacity>
         {!isConnected && (
           <Text style={styles.connectHelpText}>Go to the 'Connect' page first.</Text>
@@ -82,7 +145,7 @@ export default function ControlScreen(props: Props) {
         <Joystick
           size={220}
           knobSize={90}
-          onMove={onJoystickMove}
+          onMove={handleJoystickMove}
           onRelease={onJoystickRelease}
         />
       </View>
@@ -101,6 +164,16 @@ const styles = StyleSheet.create({
     borderBottomColor: "#333"
   },
   statusText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  modeIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  modeLabel: { color: '#bbb', fontSize: 16, marginRight: 8 },
+  modeValue: { fontSize: 18, fontWeight: 'bold' },
+  textBlue: { color: '#60a5fa' },
+  textRed: { color: '#f87171' },
   topThird: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
   callButton: { 
     paddingVertical: 18, 

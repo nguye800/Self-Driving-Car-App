@@ -15,6 +15,7 @@ const textDecoder = new TextDecoder();
 const PONG_PAYLOAD = commandEncoder.encode('PONG').buffer;
 // Export this so ControlScreen can import it
 export const CALL_ROBOT_PAYLOAD = commandEncoder.encode('MANUAL');
+export const AUTO_ROBOT_PAYLOAD = commandEncoder.encode('START');
 // Your previous code used a byte [0x02], but your new spec says the *string* 'MANUAL'.
 // We will use the string.
 
@@ -138,7 +139,15 @@ class BluetoothService {
       this.setState({ error: err.message });
     }
   }
-  
+  public async sendAutoCommand() {
+    this.setState({ error: null });
+    if (!this.state.status.includes('Subscribed')) return;
+    try {
+      await this.adapter.write(SERVICE_UUID, COMMAND_CHAR_UUID, AUTO_ROBOT_PAYLOAD.buffer, false);
+    } catch (err: any) {
+      this.setState({ error: `Cmd Error: ${err.message}` });
+    }
+  }
   public async sendManualCommand() {
     // App -> Pi ('MANUAL')
     this.setState({ error: null });
@@ -152,6 +161,18 @@ class BluetoothService {
       console.log("'MANUAL' command sent.");
     } catch (err: any) {
       this.setState({ error: `Failed to send 'MANUAL' command: ${err.message}` });
+    }
+  }
+  public async sendJsonCommand(data: object) {
+    if (!this.state.status.includes('Subscribed')) return;
+    try {
+      const jsonString = JSON.stringify(data);
+      const payload = commandEncoder.encode(jsonString).buffer;
+      // 'false' for responseRequired usually speeds up high-frequency writes like joysticks
+      await this.adapter.write(SERVICE_UUID, COMMAND_CHAR_UUID, payload, false);
+    } catch (err: any) {
+      // Don't flood the UI with errors for joystick packets, just log it
+      console.warn("Joystick Send Error:", err.message);
     }
   }
 }
