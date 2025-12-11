@@ -34,17 +34,17 @@ export default function ControlScreen(props: Props) {
   useEffect(() => {
     const listener = (newState: BluetoothState) => {
       setStatus(newState.status);
-      if (newState.piData) {
+      if (newState.piData?.startsWith('{')) {
         try {
           const data = JSON.parse(newState.piData);
-          if (data.mode && data.mode !== currentMode) {
+          if (data.mode) {
             setCurrentMode(data.mode);
-          }
-          else if (newState.piData === 'MANUAL') {
-            setCurrentMode('MANUAL');
           }
         } catch (err) {
         } // Ignore JSON parse errors
+      }
+      else if(newState.piData === 'MANUAL') {
+        setCurrentMode('MANUAL');
       }
     };
     btService.subscribe(listener);
